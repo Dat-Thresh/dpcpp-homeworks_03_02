@@ -7,28 +7,30 @@
 class Observer {
 public:
 	Observer() = default;
-	virtual void onWarning(const std::string& message) {};
-	virtual void onError(const std::string& message) {};
-	virtual void onFatalError(const std::string& message) {};
+	virtual void onWarning(const std::string message) const {};
+	virtual void onError(const std::string message) const {};
+	virtual void onFatalError(const std::string message) const {};
 	virtual ~Observer() = default;
 
 };
 
 class WarningObserver : public Observer{
 public:
-	void onWarning(const std::string& message) override {
-		std::cout << "It's warning message" << message << std::endl;
+	using Observer::Observer;
+	void onWarning(const std::string message) const override {
+		std::cout << "It's warning message: " << message << std::endl;
 	}
 
 };
 
 class ErrorObserver :public Observer {
 public:
-	void onError(const std::string& message) override {
+	using Observer::Observer;
+	void onError(const std::string message)const override {
 		std::ofstream out;
-		out.open("..\\ErrorLog.txt");
+		out.open("..\\Log.txt");
 		if (out.is_open()) {
-			out << "It's error message" << message << std::endl;
+			out << "It's ErrorObserver message: " << message << std::endl;
 			out.close();
 		}
 		else {
@@ -39,9 +41,11 @@ public:
 
 class FatalErrorObserver : public Observer {
 public:
-	void onFatalError(const std::string& message) override {
+	using Observer::Observer;
+	void onFatalError(const std::string message) const override {
 		std::ofstream out;
-		std::cout << "It's Fatal err message" << message << std::endl;
+		out.open("..\\Log.txt", std::ios::app);
+		std::cout << "It's Fatal err message: " << message << std::endl;
 		if (out.is_open()) {
 			out << message << std::endl;
 			out.close();
@@ -54,8 +58,8 @@ public:
 
 class Observed {
 public:
-	void warning(const std::string& message) const {
-		for (auto el : observers_) {
+	void warning(const std::string message) const {
+		for (auto& el : observers_) {
 			if (auto ptr = el.lock()) {
 				ptr->onWarning(message);
 			}
@@ -64,8 +68,8 @@ public:
 			}
 		}
 	};
-	void error(const std::string& message) const {
-		for (auto el : observers_) {
+	void error(const std::string message) const {
+		for (auto& el : observers_) {
 			if (auto ptr = el.lock()) {
 				ptr->onError(message);
 			}
@@ -74,8 +78,8 @@ public:
 			}
 		}
 	};
-	void fatalError(const std::string& message) const {
-		for (auto el : observers_) {
+	void fatalError(const std::string message) const {
+		for (auto& el : observers_) {
 			if (auto ptr = el.lock()) {
 				ptr->onFatalError(message);
 			}
@@ -96,9 +100,9 @@ protected:
 int main() {
 	try {
 		Observed observed;
-		auto WarningObs = std::make_shared<Observer>(new WarningObserver);
-		auto ErrorObs = std::make_shared<Observer>(new ErrorObserver);
-		auto FatalErObs= std::make_shared<Observer>(new FatalErrorObserver);
+		auto WarningObs = std::make_shared<WarningObserver>(WarningObserver());
+		auto ErrorObs = std::make_shared<ErrorObserver>(ErrorObserver());
+		auto FatalErObs= std::make_shared<FatalErrorObserver>(FatalErrorObserver());
 
 		observed.addObserver(WarningObs);
 		observed.addObserver(ErrorObs);
